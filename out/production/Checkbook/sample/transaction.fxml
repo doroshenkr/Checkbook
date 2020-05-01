@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<GridPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="sample.TransactionController"
+            prefHeight="400.0" prefWidth="600.0"
+            gridLinesVisible="true">
+
+    <columnConstraints>
+        <ColumnConstraints percentWidth="30.0" />
+        <ColumnConstraints percentWidth="70.0" />
+    </columnConstraints>
+
+    <Label text="Date:" GridPane.rowIndex="0" GridPane.columnIndex="0" alignment="CENTER_RIGHT"></Label>
+    <DatePicker fx:id="transactionDatePicker"  GridPane.rowIndex="0" GridPane.columnIndex="1" ></DatePicker>
+
+    <Label text="Description:" GridPane.rowIndex="1" GridPane.columnIndex="0" alignment="CENTER_RIGHT"></Label>
+    <TextField fx:id="descriptionTF" GridPane.rowIndex="1" GridPane.columnIndex="1"></TextField>
+
+    <Label text="Account:" GridPane.rowIndex="2" GridPane.columnIndex="0" alignment="CENTER_RIGHT"></Label>
+    <ComboBox fx:id="accountCB" GridPane.rowIndex="2" GridPane.columnIndex="1"></ComboBox>
+
+    <Label text="Category:" GridPane.rowIndex="3" GridPane.columnIndex="0" alignment="CENTER_RIGHT"></Label>
+    <ComboBox fx:id="categoryCB" GridPane.rowIndex="3" GridPane.columnIndex="1"></ComboBox>
+
+    <Label text="Amount:" GridPane.rowIndex="4" GridPane.columnIndex="0" alignment="CENTER_RIGHT"></Label>
+    <TextField fx:id="amountTF" GridPane.rowIndex="4" GridPane.columnIndex="1"></TextField>
+
+    <Button fx:id="submit" text="Submit" GridPane.rowIndex="6" GridPane.columnIndex="0" GridPane.ColumnSpan="2" GridPane.halignment="CENTER"></Button>
+
+
+</GridPane>

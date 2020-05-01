@@ -1,205 +1,184 @@
 package sample;
 
-import com.mysql.cj.result.SqlDateValueFactory;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
-import javafx.util.Callback;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import sample.data.DBHandler;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Properties;
 
+import static sample.data.DBHandler.*;
+
 public class SummaryController {
 
-    @FXML
-    TableView<Account> accountTableView;
+    @FXML TableView<Account> accountTableView;
+    @FXML TableView<Transaction> transactionTableView;
+    @FXML ToolBar dateToolBar;
+    @FXML ToolBar transactionToolBar;
+    @FXML Label selectedDateLabel;
+    @FXML Button previousButton;
+    @FXML Button nextButton;
+    @FXML Button deleteAccountButton;
 
-    @FXML
-    TableView<Transaction> transactionTableView;
 
-    @FXML
-    GridPane controlGridPane;
-
-    Date selectedDate = getTodaysDate();
+    private LocalDate selectedDate = LocalDate.now();
 
     public void initialize(){
         System.out.println("WELCOME!!!");
 
+        selectedDateLabel.setText(formatDate(selectedDate));
+
+        setAccountTableViewRowFactory();
+
+        populateAccounts();
+
+        if(accountTableView.getItems().size() > 0){
+            accountTableView.getSelectionModel().select(0);
+            populateTransactions(selectedDate);
+        }
+
+
+    }
+
+
+    private String formatDate(LocalDate date){
+
+        return date.format(DateTimeFormatter.ofPattern("MM/yyyy"));
+
+    }
+
+    @FXML
+    private void setAccountTableViewRowFactory(){
         accountTableView.setRowFactory(tv -> {
             TableRow<Account> row = new TableRow<>();
             row.setOnMouseClicked(e -> {
                 if (!row.isEmpty()) {
-                   populateTransactions(selectedDate);
-
+                    populateTransactions(selectedDate);
                 }
             });
             return row ;
         });
+    }
 
-        setupControls();
 
-        createAccountTVColumns();
-        createTransactionTVColumns();
-
-        populateAccounts();
-        accountTableView.getSelectionModel().select(0);
+    @FXML
+    private void decrementDateByMonth(){
+        selectedDate = selectedDate.minus(Period.ofMonths(1));
         populateTransactions(selectedDate);
-        //populateTransactions();
-
-        //transactionTableView.getItems().get(0).setDescription("This is the new description!");
-    }
-
-    private Date getTodaysDate(){
-
-        long millis=System.currentTimeMillis();
-        java.sql.Date date=new java.sql.Date(millis);
-
-        return (Date)date;
-
+        selectedDateLabel.setText(formatDate(selectedDate));
 
     }
 
     @FXML
-    private void setupControls(){
-
-        Button button = new Button();
-        button.setId("previous");
-        button.setText("Previous");
-        button.setOnMouseClicked(e -> {
-
-            Calendar calendar = Calendar
-//            Alert alert = new Alert(Alert.AlertType.WARNING);
-//            alert.setTitle("Previous");
-//            alert.show();
-
-        });
-        controlGridPane.add(button,0, 0);
-
-        button = new Button();
-        button.setId("next");
-        button.setText("Next");
-        controlGridPane.add(new Button("Next"),1, 0);
+    private void incrementDateByMonth(){
+        selectedDate = selectedDate.plus(Period.ofMonths(1));
+        populateTransactions(selectedDate);
+        selectedDateLabel.setText(formatDate(selectedDate));
 
     }
+
 
     @FXML
-    private void populateTransactions(Date selectedDate){
-        System.out.println(selectedDate);
+    private void populateTransactions(LocalDate selectedDate){
 
-            List<Transaction> transactionList = new ArrayList();
-            StringBuilder query = new StringBuilder();
-            Account currentAccount;
+        Account currentAccount = accountTableView.getSelectionModel().getSelectedItem();
 
-            if(accountTableView.getSelectionModel().getSelectedItem() != null){
-                currentAccount = accountTableView.getSelectionModel().getSelectedItem();
-                query.append("SELECT * FROM fintransaction WHERE " +
-                        "fintransaction_id = ");
-                query.append(currentAccount.getAccountID());
-                query.append(" AND MONTH(fintransaction_date) = MONTH('" + selectedDate + "') " +
-                        "AND YEAR(fintransaction_date) = YEAR('" + selectedDate + "')");
-            } else{
-                return;
-            }
-
-            try{
-                Connection connection = establishConnection();
-                Statement statement = connection.createStatement();
-                ResultSet resultSet = statement.executeQuery(query.toString());
-
-                while(resultSet.next()){
-                    int id = resultSet.getInt("fintransaction_id");
-                    java.sql.Date date = resultSet.getDate("fintransaction_date");
-                    String description = resultSet.getString("fintransaction_description");
-                    int accountID = resultSet.getInt("finaccount_id");
-                    int categoryID = resultSet.getInt("category_id");
-                    BigDecimal amount = resultSet.getBigDecimal("amount");
-                   transactionList.add(new Transaction(id, date, description, accountID, categoryID, amount));
-                }
-
-                transactionTableView.getItems().setAll(transactionList);
-                connection.close();
-            } catch (SQLException e){
-                System.out.println(e);
-            }
+        if(currentAccount != null) {
+            transactionTableView.getItems().setAll(getTransactions(selectedDate, currentAccount));
+            transactionTableView.getItems().add(new Transaction(5, new Date(2020, 4, 20), "test", 1, "Name", null, new BigDecimal(8.00)));
+        }
 
     }
-
-    private void createTransactionTVColumns(){
-
-        List<TableColumn> columns = new ArrayList<>();
-
-        TableColumn<Transaction, java.sql.Date> transactionDateTableColumn = new TableColumn<>("Date");
-        transactionDateTableColumn.setCellValueFactory(new PropertyValueFactory("transactionDate"));
-        columns.add(transactionDateTableColumn);
-
-        TableColumn<Transaction, java.sql.Date> transactionDescriptionTableColumn = new TableColumn<>("Description");
-        transactionDescriptionTableColumn.setCellValueFactory(new PropertyValueFactory("description"));
-
-        TableColumn<Transaction, java.sql.Date> transactionAmountTableColumn = new TableColumn<>("Amount");
-        transactionAmountTableColumn.setCellValueFactory(new PropertyValueFactory("amount"));
-
-        transactionTableView.getColumns().setAll(transactionDateTableColumn, transactionDescriptionTableColumn, transactionAmountTableColumn);
-    }
-
 
 
     @FXML
     private void populateAccounts(){
 
-        List<Account> accountList = new ArrayList<>();
-        StringBuilder query = new StringBuilder("SELECT * FROM finaccount");
+        accountTableView.getItems().setAll(getAccounts());
+
+    }
+
+
+    @FXML
+    private void openExpenseWindow(){
 
         try{
-            Connection connection = establishConnection();
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query.toString());
+//            Parent root = FXMLLoader.load(getClass().getResource("transaction.fxml"));
 
-            while(resultSet.next()){
-                accountList.add(new Account(resultSet.getInt("finaccount_id"),resultSet.getString("finaccount_name"), resultSet.getBigDecimal("balance")));
-            }
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("transaction.fxml"));
 
-            accountTableView.getItems().setAll(accountList);
+            Parent root = loader.load();
 
-            connection.close();
-        } catch (SQLException e){
+            TransactionController transactionController = loader.getController();
+            transactionController.setDate(selectedDate);
+            transactionController.setAccountCB(getAccounts());
+            transactionController.setCategoryCB(getCategories());
+
+
+            Stage stage = new Stage();
+            stage.setTitle("Add Transaction");
+            stage.setScene(new Scene(root, 250, 250));
+            stage.setResizable(false);
+            stage.setAlwaysOnTop(true);
+            stage.initModality(Modality.APPLICATION_MODAL);
+
+//            FXMLLoader loader = new FXMLLoader(getClass().getResource("transaction.fxml"));
+//            Parent root = loader.load();
+//            TransactionController transactionController = loader.getController();
+//            transactionController.setLabel("Look! We've just passed info between stages");
+
+            stage.showAndWait();
+            populateTransactions(selectedDate);
+        } catch(IOException e){
             System.out.println(e);
         }
 
     }
 
     @FXML
-    private void createAccountTVColumns(){
-        TableColumn<Account, String> accountNameColumn = new TableColumn<>("Account Name");
-        accountNameColumn.setCellValueFactory(new PropertyValueFactory("name"));
+    private void openAccountWindow(){
 
-        TableColumn<Account, BigDecimal> accountBalanceColumn = new TableColumn<>("Balance");
-        accountBalanceColumn.setCellValueFactory(new PropertyValueFactory("balance"));
-
-        accountTableView.getColumns().setAll(accountNameColumn, accountBalanceColumn);
-    }
-
-    private Connection establishConnection(){
-        Connection connection = null;
-        Properties connectionProperties = new Properties();
-        connectionProperties.put("user", "test");
-        connectionProperties.put("password", "test");
 
         try{
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/checkbook", connectionProperties);
-            return connection;
-        } catch(SQLException e){
+            Parent root = FXMLLoader.load(getClass().getResource("addAccountWindow.fxml"));
+
+            Stage stage = new Stage();
+            stage.setTitle("Add Account");
+            stage.setScene(new Scene(root, 250, 250));
+            stage.setResizable(false);
+            //stage.setAlwaysOnTop(true);
+            stage.initModality(Modality.APPLICATION_MODAL);
+
+            stage.showAndWait();
+            accountTableView.getItems().setAll(getAccounts());
+
+        } catch (IOException e){
             System.out.println(e);
         }
+    }
 
-        return null;
+    @FXML
+    private void deleteAccount(){
+
+        if(accountTableView.getSelectionModel().getSelectedItem() != null){
+            Account selectedAccount = accountTableView.getSelectionModel().getSelectedItem();
+            DBHandler.deleteAccount(selectedAccount);
+            populateAccounts();
+        }
+
     }
 
 }

@@ -9,17 +9,20 @@ public class Transaction {
     private java.sql.Date transactionDate;
     private String description;
     private int accountId;
-    private int categoryId;
-    private BigDecimal amount;
+    private String categoryName;
+    private BigDecimal income;
+    private BigDecimal expense;
 
-    public Transaction(int transactionId, java.sql.Date transactionDate, String description, int accountId, int categoryId, BigDecimal amount) {
+    public Transaction(int transactionId, java.sql.Date transactionDate, String description, int accountId, String categoryName, BigDecimal income, BigDecimal expense) {
         this.transactionId = transactionId;
         this.transactionDate = transactionDate;
         this.description = description;
         this.accountId = accountId;
-        this.categoryId = categoryId;
-        this.amount = amount;
+        this.categoryName = categoryName;
+        this.income = income;
+        this.expense = expense;
     }
+
 
     public java.sql.Date getTransactionDate() {
         return transactionDate;
@@ -33,7 +36,16 @@ public class Transaction {
         this.description = description;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public BigDecimal getIncome() {
+        return income;
+    }
+
+
+    public BigDecimal getExpense(){
+        return expense;
     }
 }
